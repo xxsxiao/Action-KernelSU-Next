@@ -1,4 +1,4 @@
-name: Build KernelSU Next SUSFS OnePlusOSS
+name: Build-ksunext-12r-SUSFS.yml
 on:
   workflow_dispatch:
     inputs:
