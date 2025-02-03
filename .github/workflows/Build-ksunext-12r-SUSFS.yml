@@ -1,4 +1,4 @@
-name: Build-ksunext-12r-SUSFS.yml
+name: Build KernelSU Next SUSFS 12R.yml
 on:
   workflow_dispatch:
     inputs:
