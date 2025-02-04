@@ -1,4 +1,4 @@
-name: Build KernelSU Next SUSFS Ace2Pro
+name: Build KernelSU Next SUSFS Ace2Pro TEST
 on:
   workflow_dispatch:
     inputs:
