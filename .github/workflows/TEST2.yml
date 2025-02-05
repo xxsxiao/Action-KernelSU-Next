@@ -1,4 +1,4 @@
-name: 构建SM8550-ace2pro内核
+name: Build KernelSU Next SUSFS Ace2Pro TEST2
 
 on:
   workflow_call:
