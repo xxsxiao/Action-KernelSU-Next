@@ -1,4 +1,4 @@
-name: Build KernelSU Next SUSFS
+name: Build KernelSU Next SUSFS TEST
 on:
   workflow_dispatch:
     inputs:
