@@ -1,0 +1,92 @@
+name: Build-TEST-Ace2Pro
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 8192
+        temp-reserve-mb: 2048
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+
+    - name: Configure Git
+      run: |
+         git config --global user.name "Numbersf"
+         git config --global user.email "263623064@qq.com"
+    
+    - name: 安装repo
+      run: |
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+        chmod a+x ~/repo
+        sudo mv ~/repo /usr/local/bin/repo
+    
+    - name: 安装编译环境
+      run: |
+        sudo apt update && sudo apt upgrade -y
+        sudo apt install curl git python3 python3-pip -y
+        pip3 install requests_toolbelt requests
+
+    - name: 拉取oneplus ace2pro内核清单
+      run: |
+        mkdir kernel && cd kernel
+        repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b oneplus/sm8550 -m oneplus_ace2pro_v.xml --depth=1
+        repo sync -j$(nproc --all)
+        rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
+        rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+        sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
+        sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
+
+    - name: 添加KernelSU Next
+      run: |
+        cd kernel/kernel_platform/common
+        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
+        
+    - name: 添加SUSFS
+      run: |
+           cd kernel
+           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android13-5.15
+           # git clone https://github.com/TheWildJames/kernel_patches.git
+           cd kernel_platform
+           cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./common/KernelSU-Next/
+           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./common/
+           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
+           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+           cd common
+           patch -p1 < 50_add_susfs_in_gki-android13-5.15.patch
+           
+    - name: 编译内核
+      run: |
+        cd kernel
+        export  LTO=thin
+        ./kernel_platform/oplus/build/oplus_build_kernel.sh kalama gki
+        
+    - name: Make AnyKernel3
+      run: |
+       git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
+       rm -rf ./AnyKernel3/.git
+       cp kernel/kernel_platform/out/msm-kernel-kalama-gki/gki_kernel/dist/Image ./AnyKernel3/
+
+    - name: 上传 AnyKernel3
+      uses: actions/upload-artifact@v4
+      with:
+        name: AnyKernel3-KernelSU_Next-SUSFS-For-Ace2Pro
+        path: ./AnyKernel3/*
+
+    - name: 上传 Image
+      uses: actions/upload-artifact@v4
+      with:
+        name: Image-KernelSU_Next-SUSFS-Ace2Pro
+        path: kernel/kernel_platform/out/msm-kernel-kalama-gki/gki_kernel/dist/Image
