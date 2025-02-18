@@ -1,4 +1,4 @@
-name: Build KernelSU Next SUSFS Ace2Pro TEST
+name: Build TEST（不要用这个一般都有问题！！！）
 on:
   workflow_dispatch:
     inputs:
