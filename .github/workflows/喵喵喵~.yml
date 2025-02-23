@@ -63,11 +63,9 @@ jobs:
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
          sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
          sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
-         sed -i '$s|echo "\$res"|echo "$res-Mortis"|' kernel_platform/common/scripts/setlocalversion            
-         sed -i '$s|echo "\$res"|echo "$res-Mortis"|' kernel_platform/msm-kernel/scripts/setlocalversion
-                  
+
       - name: Set up KernelSU Next
-        
+
         run: |
          cd kernel_workspace/kernel_platform
          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next-susfs
@@ -77,7 +75,7 @@ jobs:
          sed -i "s/DKSU_VERSION=11998/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
         
       - name: Set up susfs
-        
+
         run: |
            cd kernel_workspace
            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}
@@ -101,22 +99,23 @@ jobs:
       - name: Build kernel
         run: |
          cd kernel_workspace
-         LTO=thin ./kernel_platform/oplus/build/oplus_build_kernel.sh ${{ github.event.inputs.CPUD }} gki
+         export LTO=thin
+         ./kernel_platform/oplus/build/oplus_build_kernel.sh ${{ github.event.inputs.CPUD }} gki
          
       - name: Make AnyKernel3
         run: |
-         git clone https://github.com/TanakaLun/AnyKernel3 --depth=1
+         git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
          rm -rf ./AnyKernel3/.git
          cp kernel_workspace/kernel_platform/out/msm-kernel-${{ github.event.inputs.CPUD }}-gki/gki_kernel/dist/Image ./AnyKernel3/
-
-      - name: Download SUSFS Module
-        run: |
-         wget https://github.com/sidex15/ksu_module_susfs/releases/latest/download/ksu_module_susfs_1.5.2+.zip
-         cp ksu_module_susfs_1.5.2+.zip ./AnyKernel3/
-
 
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
          name: AnyKernel3_KernelSU_Next_${{ env.KSUVER }}_${{ github.event.inputs.FEIL }}
          path: ./AnyKernel3/*
+
+      - name: Upload Image
+        uses: actions/upload-artifact@v4
+        with:
+         name: Image_KernelSU_Next_${{ env.KSUVER }}_${{ github.event.inputs.FEIL }}
+         path: kernel_workspace/kernel_platform/out/msm-kernel-${{ github.event.inputs.CPUD }}-gki/gki_kernel/dist/Image
