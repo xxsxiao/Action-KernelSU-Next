@@ -1,5 +1,4 @@
-目前上游出现严重问题！请等待修复！！！
- 
+
 > [!CAUTION]
 > 
 >请fork本分支项目（Numbersf/Action-KernelSU-Next）而不是原项目或者其他项目 他们并不适配你这个机型!
