@@ -59,6 +59,7 @@ jobs:
           sudo apt update && sudo apt upgrade -y
           sudo apt install -y python3 git curl patch bc bison flex libssl-dev make gcc g++ libelf-dev
           sudo apt install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          aarch64-linux-gnu-gcc --version || { echo "Error: aarch64-linux-gnu-gcc not installed correctly!"; exit 1; }
 
       - name: Install repo tool
         run: |
@@ -71,42 +72,10 @@ jobs:
           mkdir kernel_workspace && cd kernel_workspace
           repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
           repo sync
-          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+          rm kernel_platform/common/android/abi_gki_protected_exports_* || true
+          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || true
           sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
           sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
-
-      - name: Define DEFCONFIG_PATH and Add Custom Config
-        run: |
-          cd kernel_workspace/kernel_platform
-          DEFCONFIG_PATH="./common/arch/arm64/configs/gki_defconfig"
-          echo "Adding configuration settings to defconfig..."
-          echo "CONFIG_KSU=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_WITH_KPROBES=n" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_TMPFS_XATTR=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_TMPFS_POSIX_ACL=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_IP_NF_TARGET_TTL=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_IP6_NF_TARGET_HL=y" >> "$DEFCONFIG_PATH"
-          echo "CONFIG_IP6_NF_MATCH_HL=y" >> "$DEFCONFIG_PATH"
-          # 验证配置是否生效
-          make -C common O=../out/msm-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.CPUD }}-gki ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
-          grep "CONFIG_KSU_SUSFS" ../out/msm-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.CPUD }}-gki/.config || echo "Warning: CONFIG_KSU_SUSFS not found!"
 
       - name: Set up KernelSU Next
         if: github.event.inputs.KSUNEXT_ENABLED == 'true'
@@ -118,7 +87,7 @@ jobs:
           echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
           sed -i "s/DKSU_VERSION=11998/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
 
-      - name: Set up susfs
+      - name: Set up SUSFS
         if: github.event.inputs.SUSFS_ENABLED == 'true'
         run: |
           cd kernel_workspace
@@ -129,20 +98,18 @@ jobs:
           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch ./common/
           cp -r ../susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp -r ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-          # Apply patches
-          cd ./KernelSU-Next
-          patch -p1 < 0001-kernel-patch-susfs-v1.5.5-to-KernelSU-Next-v1.0.5.patch || true
-          cd ../common
-          patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
-          cp ../../kernel_patches/next/next_hooks.patch ./
-          patch -p1 -F 3 < next_hooks.patch
-          cp ../../kernel_patches/69_hide_stuff.patch ./
-          patch -p1 -F 3 < 69_hide_stuff.patch
-          git add -A && git commit -a -m "BUILD Kernel"
-           cd ..
-          cd ./msm-kernel && git add -A && git commit -a -m "BUILD Kernel"
-          cd ..
+          cd ./KernelSU-Next && patch -p1 < 0001-kernel-patch-susfs-v1.5.5-to-KernelSU-Next-v1.0.5.patch || true
+          cd ../common && patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
 
+      - name: Define DEFCONFIG_PATH and Add Custom Config
+        run: |
+          cd kernel_workspace/kernel_platform
+          export DEFCONFIG_PATH="./common/arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_KSU=y" >> "$DEFCONFIG_PATH"
+          echo "CONFIG_KSU_SUSFS=y" >> "$DEFCONFIG_PATH"
+          mkdir -p ../out/msm-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.CPUD }}-gki
+          make -C common O=../out/msm-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.CPUD }}-gki ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
+          [ -f "../out/msm-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.CPUD }}-gki/.config" ] || { echo "Error: .config file not generated!"; exit 1; }
 
       - name: Build kernel
         run: |
@@ -164,5 +131,5 @@ jobs:
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-          name: AnyKernel3_KernelSU_Next_${{ env.KSUVER }}_${{ github.event.inputs.FEIL }}
+          name: AnyKernel3_KernelSU_Next_${{ github.event.inputs.FEIL }}
           path: ./AnyKernel3/*
