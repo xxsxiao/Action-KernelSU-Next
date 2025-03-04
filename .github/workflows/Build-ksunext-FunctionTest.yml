@@ -1,4 +1,4 @@
-name: Build KernelSU Next SUSFS Functional Testing
+name: Build KernelSU Next SUSFS Functional Testing 测试新功能的不要动这个喵
 
 on:
   workflow_dispatch:
@@ -58,6 +58,7 @@ jobs:
         run: |
           sudo apt update && sudo apt upgrade -y
           sudo apt install -y python3 git curl patch bc bison flex libssl-dev make gcc g++ libelf-dev
+          sudo apt install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Install repo tool
         run: |
