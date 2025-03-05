@@ -134,7 +134,7 @@ jobs:
          git add -A && git commit -a -m "Update for SUSFS"
          cd ..
 
-- name: Apply new hook and add configuration
+      - name: Apply new hook and add configuration
         run: |
          cd kernel_workspace/kernel_platform
          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
