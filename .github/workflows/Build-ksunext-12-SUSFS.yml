@@ -81,6 +81,7 @@ jobs:
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
          sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
          sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
+         sed -i 's/ -dirty//g' kernel_platform/external/dtc/scripts/setlocalversion
 
       - name: Set up KernelSU Next
         if: github.event.inputs.KSUNEXT_ENABLED == 'true'
@@ -161,9 +162,11 @@ jobs:
       - name: Build kernel
         run: |
          cd kernel_workspace
-         # export LTO=thin
-         ./kernel_platform/oplus/build/oplus_build_kernel.sh ${{ github.event.inputs.CPUD }} ${{ github.event.inputs.BUILD_METHOD }}
-         
+         export LTO=thin
+         #./kernel_platform/oplus/build/oplus_build_kernel.sh ${{ github.event.inputs.CPUD }} gki
+         ./kernel_platform/build_with_bazel.py \
+            -t pineapple \
+            gki \
       - name: Make AnyKernel3
         run: |
          git clone https://github.com/Numbersf/AnyKernel3 --depth=1
