@@ -3,6 +3,8 @@
 > 
 >请fork本分支项目（Numbersf/Action-KernelSU-Next）而不是原项目或者其他项目 他们并不适配你这个机型!
  
+[![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) 
+ 
 更新日志:
 - 调用vfs钩子取代kp
 - 自动下载susfs最新版本
