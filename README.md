@@ -5,7 +5,7 @@
  
 [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) 
  
-##公告##
+# 公告
 KernelSU Next12445版本管理器存在问题可能导致部分模块失效,请等待上游更新或者降管理器版本号为12443 内核可以使用12445
  
 更新日志:
