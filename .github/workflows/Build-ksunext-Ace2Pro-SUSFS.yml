@@ -109,8 +109,8 @@ jobs:
          cd ../common
          patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
 
-         cp ../../kernel_patches/next/next_hooks.patch ./
-         patch -p1 -F 3 < next_hooks.patch
+         cp ../../kernel_patches/next/syscall_hooks.patch ./
+         patch -p1 -F 3 < syscall_hooks.patch
 
          # Apply VFS fix changes directly
          cd ../  # Move back to kernel_platform directory
