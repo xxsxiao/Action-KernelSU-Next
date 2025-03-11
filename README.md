@@ -6,7 +6,8 @@
 [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) 
  
 # 公告
-问题应该马上就会得到修复！！！请等待！！！！作者已经注意到了
+**问题应该马上就会得到修复！！！请等待！！！！作者已经注意到了**
+
 KernelSU Next12448版本管理器存在问题可能导致部分模块失效,请等待上游更新或者降管理器版本号为12443 内核可以继续使用12448
 >>2025.3.11.20:42发布
  #
