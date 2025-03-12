@@ -6,7 +6,7 @@
 [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) 
  
 # 公告
-新版本使用next-susfs-dev分支,它可以解决使用vfs hook牛头人又出ab问题
+新版本使用**next-susfs-dev**分支,它可以解决使用vfs hook牛头人又出ab问题
  
 **版本号外显比实际刷入高2是正常现象,无需管理**
  
