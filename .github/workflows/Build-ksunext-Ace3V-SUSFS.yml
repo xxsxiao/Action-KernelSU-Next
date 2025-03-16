@@ -57,7 +57,7 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
 
-       - name: Configure Git
+      - name: Configure Git
         run: |
           git config --global user.name "build"
           git config --global user.email "263623064@qq.com"
