@@ -13,10 +13,7 @@
 - 优化部分代码,调用新的patch
 - 修复部分机型-dirty后缀问题 感谢酷安九霄y、慕容雪绒提供的帮助
 - 调用vfs钩子取代kp
-- ~自动下载susfs最新版本~
 - 适配KSUN内核版本12437+
-- ~启用临时susfs分支确保12400+的适配~
-- 适配susfs 1.5.5
 - 修复Ace2Pro的AnyKernel3路径错误导致的无法生成
  
 一加内核开源地址：[OnePlusOSS](https://github.com/OnePlusOSS/kernel_manifest)
