@@ -6,7 +6,7 @@
 [![Channel](https://img.shields.io/badge/Follow-Telegram-blue.svg?logo=telegram)](https://t.me/taichi91) 
  
 # 公告
-暂无
+**Ace3V和Ace5有问题就多跑几次**
  
 # 更新日志:
 - 优化部分代码,调用新的patch
