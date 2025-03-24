@@ -15,25 +15,21 @@ jobs:
         run: |
           mkdir -p release_files
           find . -type f -name "AnyKernel3_KernelSU_Next_*.zip" | grep -v "喵喵喵" | xargs -I {} cp {} release_files/
+          echo "找到的 ZIP 文件列表："
           ls -al release_files/
 
-      - name: 创建 Release（如果不存在）
-        id: create_release
-        uses: actions/create-release@v1
+      - name: 创建或更新 Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: latest
-          release_name: "Latest Kernel Builds"
-          draft: false
-          prerelease: false
+        run: |
+          gh release view latest || gh release create latest --title "Latest Kernel Builds" --notes "Auto-generated release"
 
       - name: 上传符合条件的 ZIP 文件
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release_files/
-          asset_name: ${{ github.run_id }}.zip
-          asset_content_type: application/zip
+        run: |
+          for file in release_files/*.zip; do
+            echo "Uploading $file..."
+            gh release upload latest "$file"
+          done
+        shell: bash
