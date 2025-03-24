@@ -1,8 +1,8 @@
 name: Build and Release OnePlus Kernels with KernelSU Next & SUSFS
 
 permissions:
-  contents: write  # 允许写入存储库内容（用于推送 tag）
-  actions: write   # 允许触发 actions
+  contents: write
+  actions: write
 
 on:
   workflow_dispatch:
@@ -14,54 +14,16 @@ on:
         default: true
 
 jobs:
-  build-kernel-10T:
-    uses: ./.github/workflows/Build-ksunext-10T-SUSFS.yml
-    secrets: inherit
-  build-kernel-11:
-    uses: ./.github/workflows/Build-ksunext-11-SUSFS.yml
-    secrets: inherit
-  build-kernel-12:
-    uses: ./.github/workflows/Build-ksunext-12-SUSFS.yml
-    secrets: inherit
-  build-kernel-12r:
-    uses: ./.github/workflows/Build-ksunext-12r-SUSFS.yml
-    secrets: inherit
-  build-kernel-Ace2:
-    uses: ./.github/workflows/Build-ksunext-Ace2-SUSFS.yml
-    secrets: inherit
-  build-kernel-Ace2Pro:
-    uses: ./.github/workflows/Build-ksunext-Ace2Pro-SUSFS.yml
-    secrets: inherit
-  build-kernel-Ace3Pro:
-    uses: ./.github/workflows/Build-ksunext-Ace3Pro-SUSFS.yml
-    secrets: inherit
-  build-kernel-Ace3V:
-    uses: ./.github/workflows/Build-ksunext-Ace3V-SUSFS.yml
-    secrets: inherit
-  build-kernel-Ace5:
-    uses: ./.github/workflows/Build-ksunext-Ace5-SUSFS.yml
-    secrets: inherit
-  build-kernel-PadPro:
-    uses: ./.github/workflows/Build-ksunext-PadPro-SUSFS.yml
-    secrets: inherit
-  build-kernel-AcePro:
-    uses: ./.github/workflows/Build-ksunext-AcePro-SUSFS.yml
+  build-kernels:
+    strategy:
+      matrix:
+        device: [10T, 11, 12, 12r, Ace2, Ace2Pro, Ace3Pro, Ace3V, Ace5, PadPro, AcePro]
+    uses: ./.github/workflows/Build-ksunext-${{ matrix.device }}-SUSFS.yml
     secrets: inherit
 
   trigger-release:
     runs-on: ubuntu-latest
-    needs:
-      - build-kernel-10T
-      - build-kernel-11
-      - build-kernel-12
-      - build-kernel-12r
-      - build-kernel-Ace2
-      - build-kernel-Ace2Pro
-      - build-kernel-Ace3Pro
-      - build-kernel-Ace3V
-      - build-kernel-Ace5
-      - build-kernel-PadPro
-      - build-kernel-AcePro
+    needs: build-kernels
     if: ${{ inputs.make_release }}
     env:
       REPO_OWNER: TheWildJames
@@ -97,6 +59,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
+          name: kernel-artifacts
           path: ./downloaded-artifacts
 
       - name: Create GitHub Release
@@ -111,10 +74,7 @@ jobs:
 
       - name: Upload Release Assets Dynamically
         run: |
-          for file in ./downloaded-artifacts/kernel-*/*; do
-              if [ -d "$file" ]; then
-                  continue
-              fi
+          for file in $(find ./downloaded-artifacts -type f); do
               echo "Uploading $file..."
               gh release upload ${{ env.NEW_TAG }} "$file"
           done
@@ -125,4 +85,4 @@ jobs:
       - name: Display Files Uploaded
         run: |
           echo "GitHub release created with the following files:"
-          ls ./downloaded-artifacts/**/*
+          find ./downloaded-artifacts -type f -exec ls -lh {} +
