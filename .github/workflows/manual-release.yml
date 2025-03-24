@@ -1,8 +1,8 @@
 name: Build and Release OnePlus Kernels with KernelSU Next & SUSFS
 
 permissions:
-  contents: write  # 允许写入存储库内容（用于推送 tag）
-  actions: write   # 允许触发 actions
+  contents: write
+  actions: write
 
 on:
   workflow_dispatch:
@@ -83,16 +83,20 @@ jobs:
 
       - name: Generate and Create New Tag
         run: |
-            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' || echo "")
-            if [[ -z "$LATEST_TAG" ]]; then
-              LATEST_TAG="v1.5.5-r0"
-            fi
-            
-            NEW_TAG=$(echo "$LATEST_TAG" | awk -F'-r' '{suffix=$2+1; printf "%s-r%d", $1, suffix}')
-            echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
-            
-            git tag $NEW_TAG
-            git push origin $NEW_TAG
+          LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' || echo "")
+          if [[ -z "$LATEST_TAG" || "$LATEST_TAG" != v* ]]; then
+            LATEST_TAG="v1.5.5-r0"
+          fi
+
+          # 提取版本号并递增
+          BASE_VERSION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $1}')
+          REVISION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $2 + 1}')
+
+          NEW_TAG="${BASE_VERSION}-r${REVISION}"
+          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+          
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
             
       - name: Download Artifacts
         uses: actions/download-artifact@v4
