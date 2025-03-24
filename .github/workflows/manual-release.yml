@@ -14,9 +14,9 @@ jobs:
       - name: 查找符合条件的 ZIP 文件
         run: |
           mkdir -p release_files
-          find . -type f -name "AnyKernel3_KernelSU_Next_*.zip" | grep -v "喵喵喵" | xargs -I {} cp {} release_files/
-          echo "找到的 ZIP 文件列表："
-          ls -al release_files/
+          find . -type f -name "AnyKernel3_KernelSU_Next_*.zip" | grep -v "喵喵喵" || true | xargs -I {} cp {} release_files/ 2>/dev/null || true
+          echo "找到的 ZIP 文件："
+          ls -al release_files/ || echo "没有找到符合条件的 ZIP 文件"
 
       - name: 创建或更新 Release
         env:
@@ -28,8 +28,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for file in release_files/*.zip; do
-            echo "Uploading $file..."
-            gh release upload latest "$file"
-          done
-        shell: bash
+          if [ -z "$(ls -A release_files)" ]; then
+            echo "没有 ZIP 文件可上传，跳过此步骤。"
+          else
+            for file in release_files/*.zip; do
+              echo "Uploading $file..."
+              gh release upload latest "$file"
+            done
+          fi
