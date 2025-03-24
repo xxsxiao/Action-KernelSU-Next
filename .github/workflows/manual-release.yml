@@ -88,7 +88,6 @@ jobs:
             LATEST_TAG="v1.5.5-r0"
           fi
 
-          # 提取版本号并递增
           BASE_VERSION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $1}')
           REVISION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $2 + 1}')
 
