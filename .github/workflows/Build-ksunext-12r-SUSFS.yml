@@ -129,7 +129,7 @@ jobs:
           cd kernel_workspace/kernel_platform
           
           # 应用容器补丁
-          curl -sL https://github.com/Linux-on-droid/vendor_lindroid/raw/main/patches/lxc.patch | patch -p1
+          # curl -sL https://github.com/Linux-on-droid/vendor_lindroid/raw/main/patches/lxc.patch | patch -p1
           # curl -sL https://gist.githubusercontent.com/android-container-dev/8c5d6f3a9e12d7c5b4e1d/raw/gki-container-v3.patch | patch -p1
           
           # 修改系统配置
