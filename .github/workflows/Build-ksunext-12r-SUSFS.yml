@@ -1,4 +1,4 @@
-name: New KernelSU Next SUSFS 12R(Ace3)
+name: New KernelSU Next SUSFS 12R(Ace3) with LXC/Docker
 on:
   workflow_dispatch:
     inputs:
@@ -41,6 +41,7 @@ on:
         required: true
         type: boolean
         default: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -114,20 +115,45 @@ jobs:
           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
 
-          # Apply patches
           cd ./KernelSU-Next
           patch -p1 < 0001-kernel-patch-susfs-v1.5.5-to-KernelSU-Next-v1.0.5.patch || true
           cd ../common
           patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
 
-          # Replace next_hooks.patch with syscall_hooks.patch
           cp ../../kernel_patches/69_hide_stuff.patch ./
           patch -p1 -F 3 < 69_hide_stuff.patch
           patch -p1 -F 3 < syscall_hooks.patch
 
-      - name: Apply new hook and add configuration
+      - name: Add LXC/Docker Support
         run: |
           cd kernel_workspace/kernel_platform
+          
+          # 应用容器补丁
+          curl -sL https://github.com/Linux-on-droid/vendor_lindroid/raw/main/patches/lxc.patch | patch -p1
+          curl -sL https://gist.githubusercontent.com/android-container-dev/8c5d6f3a9e12d7c5b4e1d/raw/gki-container-v3.patch | patch -p1
+          
+          # 修改系统配置
+          sed -i 's/CONFIG_ANDROID_PARANOID_NETWORK=y/# CONFIG_ANDROID_PARANOID_NETWORK is not set/' ./common/arch/arm64/configs/gki_defconfig
+          
+          # 添加容器配置
+          echo "CONFIG_NAMESPACES=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_USER_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NET_NS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_CGROUPS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_CGROUP_DEVICE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_VETH=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_MACVLAN=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_BRIDGE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_OVERLAY_FS=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_IP6_NF_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NF_NAT_IPV4=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_POSIX_MQUEUE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SECCOMP=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SECCOMP_FILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
+          sed -i 's/CONFIG_CGROUP_SCHED=y/CONFIG_CGROUP_SCHED=y\nCONFIG_CGROUP_HUGETLB=y/' ./common/arch/arm64/configs/gki_defconfig
+          
+          # 添加KernelSU配置
           echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_WITH_KPROBES=n" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -156,30 +182,46 @@ jobs:
 
       - name: Make AnyKernel3
         run: |
-         git clone https://github.com/Numbersf/AnyKernel3 --depth=1
-         rm -rf ./AnyKernel3/.git
-         cp kernel_workspace/kernel_platform/out/msm-kernel-${{ github.event.inputs.CPUD }}-gki/dist/Image ./AnyKernel3/
+          git clone https://github.com/Numbersf/AnyKernel3 --depth=1
+          rm -rf ./AnyKernel3/.git
+          cp kernel_workspace/kernel_platform/out/msm-kernel-${{ github.event.inputs.CPUD }}-gki/dist/Image ./AnyKernel3/
+          
+          # 添加测试脚本
+          cat > ./AnyKernel3/test_container.sh << 'EOF'
+          #!/bin/bash
+          echo "=== LXC/Docker 支持验证 ==="
+          echo "[1/4] 内核配置检查:"
+          zgrep -E 'CONFIG_NAMESPACES=|CONFIG_USER_NS=|CONFIG_CGROUPS=' /proc/config.gz 2>&1 | sed 's/^/    /'
+          
+          echo "[2/4] LXC功能验证:"
+          lxc-checkconfig 2>&1 | grep -E 'namespaces|cgroup' | sed 's/^/    /'
+          
+          echo "[3/4] Docker容器测试:"
+          docker run --rm -it alpine:latest echo "    Docker功能正常" 2>&1 | sed 's/^/    /'
+          
+          echo "[4/4] 网络命名空间测试:"
+          ip netns add testns && ip netns delete testns && echo "    网络命名空间操作成功" 2>&1 | sed 's/^/    /'
+          EOF
+          
+          chmod +x ./AnyKernel3/test_container.sh
 
-      - name: Download Latest SUSFS Module from CI
+      - name: Download SUSFS Module
         if: ${{ github.event.inputs.SUSFS_CI == 'true' }}
         run: |
           LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs" | jq -r '.workflow_runs[0].id')
-          
+
           ARTIFACT_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/sidex15/susfs4ksu-module/actions/runs/$LATEST_RUN_ID/artifacts" | jq -r '.artifacts[0].archive_download_url')
-          
+
           curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -o ksu_module_susfs.zip "$ARTIFACT_URL"
           cp ksu_module_susfs.zip ./AnyKernel3/
 
-      - name: Download Latest SUSFS Module from Release
-        if: ${{ github.event.inputs.SUSFS_CI == 'false' }}
-        run: |
-          wget https://github.com/sidex15/ksu_module_susfs/releases/latest/download/ksu_module_susfs_1.5.2+.zip
-          cp ksu_module_susfs_1.5.2+.zip ./AnyKernel3/
-
-      - name: Upload AnyKernel3
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AnyKernel3_KernelSU_Next_${{ env.KSUVER }}_${{ github.event.inputs.FEIL }}
-          path: ./AnyKernel3/*
+          name: Kernel_Image_${ { github.run_id } }
+          path: |
+            ./AnyKernel3/Image
+            ./AnyKernel3/test_container.sh
+            ./AnyKernel3/ksu_module_susfs.zip
